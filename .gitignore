@@ -1,0 +1,3 @@
+tools/.pylib/
+__pycache__/
+*.pyc
