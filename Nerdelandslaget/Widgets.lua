@@ -139,7 +139,8 @@ end
 -- A small square close button with an X.
 function UI.CloseButton(parent, onClick)
     local b = CreateFrame("Button", nil, parent)
-    b:SetSize(22, 22)
+    b:SetSize(24, 24)
+    b:RegisterForClicks("LeftButtonUp")
     local x = UI.Text(b, 16, C.cream, "CENTER")
     x:SetPoint("CENTER", 0, 1)
     x:SetText("×")
@@ -388,8 +389,10 @@ function UI.Window(name, w, h, title, pos)
     f.subtitle = UI.Text(f, 11, C.dim)
     f.subtitle:SetPoint("TOPLEFT", f.title, "BOTTOMLEFT", 0, -3)
 
+    -- above the drag strip, which would otherwise take its clicks
     f.close = UI.CloseButton(f)
     f.close:SetPoint("TOPRIGHT", -6, -6)
+    f.close:SetFrameLevel(drag:GetFrameLevel() + 5)
 
     if name then tinsert(UISpecialFrames, name) end
     return f

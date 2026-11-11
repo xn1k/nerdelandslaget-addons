@@ -181,9 +181,15 @@ function ns.Full(name)
     return realm and (name .. "-" .. realm) or name
 end
 
--- "Name" if on our realm, else "Name-Realm".
+-- "Name" if on our realm, else "Name-Realm". Use this (not Full) for anything the server
+-- reads, such as invites and whispers: on Forever the normalized realm is an internal id
+-- ("CAMWOWEU5Realm2PvP") that the server won't take back in a name.
 function ns.Short(name)
     if type(name) ~= "string" then return "?" end
+    if Ambiguate then
+        local ok, s = pcall(Ambiguate, name, "none")
+        if ok and type(s) == "string" and s ~= "" and not ns.IsSecret(s) then return s end
+    end
     local realm = Realm()
     if realm then
         local n, r = name:match("^(.-)%-(.+)$")
@@ -261,7 +267,9 @@ function ns.Invite(name)
         ns.Print("This client has no way to invite from an addon.")
         return
     end
-    local ok, err = pcall(fn, name)
+    local target = ns.Short(name)
+    ns.log("invite", name, "as", target)
+    local ok, err = pcall(fn, target)
     if not ok then ns.log("invite failed:", err) end
 end
 

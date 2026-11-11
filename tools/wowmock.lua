@@ -151,6 +151,11 @@ mock.party = {}           -- { { name=, class=, classID=, level= } }
 mock.leader = true
 mock.channelJoined = false
 
+function Ambiguate(name, context)
+    local n, r = name:match("^(.-)%-(.+)$")
+    if n and r == mock.player.realm then return n end
+    return name
+end
 function GetBuildInfo() return "1.60.1", "70888", "Nov 2026", 16001 end
 function GetNormalizedRealmName() return mock.player.realm end
 function UnitName(u)

@@ -136,7 +136,7 @@ def scenario():
     clear_sent()
     run("lfgns.LFG.Apply('Lockie-Firemaw') mock.advance(1)", "apply")
     a = [t for t in sent() if t[0].startswith("A;")]
-    check(a and a[0][1] == "WHISPER" and a[0][2] == "Lockie-Firemaw", f"apply whisper: {a}")
+    check(a and a[0][1] == "WHISPER" and a[0][2] == "Lockie", f"apply whisper to the short name: {a}")
     run("mock.fire('CHAT_MSG_ADDON', 'NLLFG1', 'N;declined', 'WHISPER', 'Lockie')", "declined")
     check(L.applied["Lockie-Firemaw"].declined == "declined", "decline recorded")
 
@@ -162,10 +162,16 @@ def scenario():
     run("lfgns.Win.Open(3)", "group tab with applicant")
     clear_sent()
     run("lfgns.LFG.Decline('Shieldy-Firemaw') mock.advance(1)", "decline")
-    check(any(t[0] == "N;declined" and t[2] == "Shieldy-Firemaw" for t in sent()), "decline whisper")
+    check(any(t[0] == "N;declined" and t[2] == "Shieldy" for t in sent()), "decline whisper")
     run("mock.fire('CHAT_MSG_ADDON', 'NLLFG1', 'A;1;38;T;again', 'WHISPER', 'Shieldy')", "applicant again")
     run("lfgns.LFG.InviteApplicant('Shieldy-Firemaw')", "invite")
-    check(any(m.get("kind") == "INVITE" for m in [dict(G.mock.sent[i].items()) for i in range(1, len(G.mock.sent) + 1)]), "invite sent")
+    invites = [dict(G.mock.sent[i].items()) for i in range(1, len(G.mock.sent) + 1)]
+    check(any(m.get("kind") == "INVITE" and m.get("target") == "Shieldy" for m in invites), f"invite by short name: {invites}")
+    # a name with a space, like Forever allows, and the window's close button
+    run("lfgns.NL.Invite('Valix Everdeen-Firemaw') NerdelandslagetLFGFrame:Show() NerdelandslagetLFGFrame.close:Click()", "close")
+    invites = [dict(G.mock.sent[i].items()) for i in range(1, len(G.mock.sent) + 1)]
+    check(any(m.get("target") == "Valix Everdeen" for m in invites), "invite name with a space")
+    check(not G.NerdelandslagetLFGFrame._shown, "close button hides the window")
 
     # they join: the party forms, roles flow, the group fills and delists
     clear_sent()

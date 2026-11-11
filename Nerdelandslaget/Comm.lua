@@ -102,6 +102,8 @@ local function SendOne(m)
         else
             return true                       -- nowhere to send it: drop
         end
+    elseif dist == "WHISPER" then
+        target = ns.Short(target)         -- the server won't take Forever's internal realm id
     elseif dist == "PARTY" then
         if not IsInGroup() then return true end
         if IsInRaid() then dist = "RAID" end
