@@ -1,4 +1,4 @@
--- Comm: addon messages between suite users in <Nerdelandslaget> and <Nerdelandslaget II>.
+-- Comm: addon messages between suite users in the Nerdelandslaget guilds (ns.GUILDS).
 --
 -- GUILD addon messages only reach your own guild, so the two guilds share a hidden chat
 -- channel (addon messages only; it never shows in chat). If the channel can't be joined

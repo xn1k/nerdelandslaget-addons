@@ -55,7 +55,7 @@ function ns.BuildOptions()
     note:SetPoint("TOPLEFT", 18, y)
     note:SetWidth(560)
     note:SetWordWrap(true)
-    note:SetText("Only members of <Nerdelandslaget> and <Nerdelandslaget II> who have the addon see your listing. "
+    note:SetText("Only members of " .. NL.GuildList() .. " who have the addon see your listing. "
         .. "The two guilds share a hidden channel for this; it never shows in your chat.\n\n"
         .. "/nl  opens the Dungeon Finder   ·   /nl lfg demo  fills it with made-up listings to try it out")
 

@@ -1,8 +1,8 @@
 ## Interface: 16001
 ## Title: Nerdelandslaget: Dungeon Finder
-## Notes: A dungeon finder for <Nerdelandslaget> and <Nerdelandslaget II>. Sign up for several dungeons at once, start groups with a level range, and invite or whisper with one click.
+## Notes: A dungeon finder for the Nerdelandslaget guilds. Sign up for several dungeons at once, start groups with a level range, and invite or whisper with one click.
 ## Author: Hans
-## Version: 0.1.2
+## Version: 0.1.3
 ## Group: Nerdelandslaget
 ## Dependencies: Nerdelandslaget
 ## SavedVariables: NerdelandslagetLFGDB

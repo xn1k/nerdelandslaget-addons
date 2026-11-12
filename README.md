@@ -1,6 +1,6 @@
 # Nerdelandslaget addon suite (WoW Forever)
 
-Addons for the Nerdelandslaget podcast community and the guilds `<Nerdelandslaget>` and `<Nerdelandslaget II>`.
+Addons for the Nerdelandslaget podcast community and the guilds `<Nerdelandslaget>` and `<Nerdelandslaget II>` (Alliance) and `<Nørdelandslaget>` (Horde, on another realm). Players only find others on their own realm and faction, because addon channels and whispers don't cross those.
 
 | Folder | What it is |
 |---|---|

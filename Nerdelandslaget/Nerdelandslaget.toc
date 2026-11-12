@@ -1,8 +1,8 @@
 ## Interface: 16001
 ## Title: Nerdelandslaget
-## Notes: Addons for the Nerdelandslaget podcast community and the guilds <Nerdelandslaget> and <Nerdelandslaget II>.
+## Notes: Addons for the Nerdelandslaget podcast community and the Nerdelandslaget guilds.
 ## Author: Hans
-## Version: 0.1.2
+## Version: 0.1.3
 ## SavedVariables: NerdelandslagetDB
 ## IconTexture: Interface\AddOns\Nerdelandslaget\Media\emblem.png
 ## AddonCompartmentFunc: Nerdelandslaget_OnAddonCompartmentClick

@@ -62,7 +62,7 @@ local function Build()
     blurb:SetPoint("RIGHT", page, "RIGHT", -20, 0)
     blurb:SetWordWrap(true)
     blurb:SetText("Addons for the Nerdelandslaget podcast community, made for the guilds "
-        .. T.Color("<Nerdelandslaget>", C.gold) .. " and " .. T.Color("<Nerdelandslaget II>", C.gold) .. ".")
+        .. ns.GuildList(C.gold) .. ".")
     y = y - 40
 
     local guild = UI.Text(page, 12, C.dim)

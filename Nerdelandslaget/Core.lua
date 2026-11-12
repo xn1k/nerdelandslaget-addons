@@ -13,8 +13,11 @@ Nerdelandslaget = ns
 ns.NAME = ADDON_NAME
 ns.VERSION = (C_AddOns and C_AddOns.GetAddOnMetadata and C_AddOns.GetAddOnMetadata(ADDON_NAME, "Version")) or "0"
 
--- The guilds the suite is for. Index 1 and 2 travel in messages, so keep the order.
-ns.GUILDS = { "Nerdelandslaget", "Nerdelandslaget II" }
+-- The community's guilds. The index travels in addon messages, so only ever add to the end.
+-- <Nørdelandslaget> is a Horde guild on another realm: its members only ever hear each
+-- other (channels and whispers don't cross factions or unconnected realms), which is fine.
+ns.GUILDS = { "Nerdelandslaget", "Nerdelandslaget II", "N\195\184rdelandslaget" }   -- \195\184 is the UTF-8 for ø
+ns.GUILD_TAGS = { "NL", "NL II", "N\195\184L" }
 
 ---------------------------------------------------------------------------
 -- Client detection
@@ -202,7 +205,7 @@ function ns.Me()
     return ns.Full(UnitName("player"))
 end
 
--- 1 or 2 for <Nerdelandslaget> / <Nerdelandslaget II>, else nil.
+-- The index in ns.GUILDS of a guild name, else nil.
 function ns.GuildIndex(name)
     if type(name) ~= "string" or ns.IsSecret(name) then return nil end
     for i, g in ipairs(ns.GUILDS) do
@@ -223,8 +226,18 @@ function ns.MyGuild()
 end
 
 function ns.GuildTag(i)
-    if i == 1 then return "NL" elseif i == 2 then return "NL II" end
-    return "?"
+    return ns.GUILD_TAGS[i] or "?"
+end
+
+-- "<Nerdelandslaget>, <Nerdelandslaget II> and <Nørdelandslaget>", each in color if given.
+function ns.GuildList(color)
+    local names = {}
+    for i, g in ipairs(ns.GUILDS) do
+        local s = "<" .. g .. ">"
+        names[i] = color and ("|c" .. ns.Theme.Hex(color) .. s .. "|r") or s
+    end
+    if #names < 2 then return names[1] or "" end
+    return table.concat(names, ", ", 1, #names - 1) .. " and " .. names[#names]
 end
 
 ---------------------------------------------------------------------------

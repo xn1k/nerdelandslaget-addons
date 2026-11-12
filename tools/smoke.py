@@ -100,7 +100,7 @@ def scenario():
     run("""
     mock.fire('CHAT_MSG_ADDON', 'NLLFG1', 'P;1;1;30;TD;5;13,14;SM pls', 'CHANNEL', 'Tanky-Firemaw')
     mock.fire('CHAT_MSG_ADDON', 'NLLFG1', 'G;2;9;33;D;30;38;2;13,14;5.32.H,1.34.T;SM GY then Lib', 'CHANNEL', 'Lockie')
-    mock.fire('CHAT_MSG_ADDON', 'NLLFG1', 'P;3;1;30;TD;5;13;bad guild', 'CHANNEL', 'Outsider')
+    mock.fire('CHAT_MSG_ADDON', 'NLLFG1', 'P;9;1;30;TD;5;13;bad guild', 'CHANNEL', 'Outsider')
     mock.fire('CHAT_MSG_ADDON', 'NLLFG1', 'P;1;1;30;TD;5;13;secret', 'CHANNEL', { __secret = true })
     """, "hear listings")
     check(L.players["Tanky-Firemaw"] is not None, "player listing heard")
@@ -257,6 +257,13 @@ def scenario():
     # not in the guilds: locked
     run("mock.player.guild = 'Some Other Guild' mock.party = {} lfgns.Win.Open(2)", "other guild")
     check(not lua.eval("lfgns.LFG.Allowed()"), "locked outside the guilds")
+    # the Horde guild, <Nørdelandslaget>, counts too, and its listings carry guild 3
+    run("mock.player.guild = 'N\\195\\184rdelandslaget' lfgns.Win.Open(2)", "horde guild")
+    check(lua.eval("lfgns.LFG.Allowed()"), "allowed in <Nørdelandslaget>")
+    check(lua.eval("Nerdelandslaget.MyGuild()") == 3, "guild index 3")
+    run("mock.fire('CHAT_MSG_ADDON', 'NLLFG1', 'P;3;4;35;D;0;;from the horde', 'CHANNEL', 'Orcy')", "horde listing")
+    check(L.players["Orcy-Firemaw"] is not None and L.players["Orcy-Firemaw"]["guild"] == 3, "listing from guild 3 heard")
+    run("lfgns.Win.Open(1) lfgns.LFG.db.browseKind = 'players' lfgns.Win.Refresh()", "browse with a horde listing")
     run("mock.player.guild = 'Nerdelandslaget'", "guild back")
 
     # options, menus, minimap button, probe, slash

@@ -595,7 +595,7 @@ end
 
 local function Guild(v)
     local g = tonumber(v)
-    if g == 1 or g == 2 then return g end
+    if g and NL.GUILDS[g] then return g end
     return nil
 end
 
