@@ -23,6 +23,7 @@ local NL = Nerdelandslaget
 local D = ns.Dungeons
 local Comm = NL.Comm
 local T = NL.Theme
+local C = T.c
 
 local L = {}
 ns.LFG = L
@@ -43,6 +44,12 @@ local ACCOUNT_DEFAULTS = {
     notifyGroups = true,      -- tell me about new groups that fit, while I'm listed
     notifyApplicants = true,
     notifyPlayers = false,    -- tell a leader about new players that fit
+    toastGroups = true,       -- pop up when a new group is listed that I'd want
+    toastMode = "level",      -- "level": takes my level, "range": toastMin-toastMax,
+    toastMin = 1,             -- "dungeons": is for one of toastDungeons
+    toastMax = 60,
+    toastDungeons = {},
+    toastApplicants = true,   -- pop up (with Invite/Whisper) when someone asks to join
     sound = true,
     autoDelistOnJoin = true,
     autoDelistWhenFull = true,
@@ -78,6 +85,8 @@ L.applied = {}        -- [leader] = { at, declined = reason? }
 L.partyRoles = {}     -- [name] = roles set, from R messages
 L.roleOverride = {}   -- [name] = role the leader picked for a member
 L.notified = {}       -- [name] = true once we've told the user about this listing
+L.toasted = {}        -- [leader] = true once a new-group pop-up has shown for their listing
+L.quietUntil = math.huge  -- no new-group pop-ups for what we hear right after logging in
 L.newerVersion = nil
 
 function L.Log(...) NL.log("[LFG]", ...) end
@@ -157,6 +166,107 @@ end
 function L.Notify(msg, sound)
     NL.Print(msg)
     if sound then L.Sound() end
+end
+
+---------------------------------------------------------------------------
+-- Pop-ups
+---------------------------------------------------------------------------
+
+-- The levels "level" and "range" pop-ups are for: my level, or the range in the options.
+function L.ToastRange()
+    if L.db.toastMode ~= "range" then
+        local l = MyLevel()
+        return l, l
+    end
+    local lo, hi = tonumber(L.db.toastMin) or 1, tonumber(L.db.toastMax) or D.MAX_LEVEL
+    if lo > hi then lo, hi = hi, lo end
+    return lo, hi
+end
+
+local function TakesLevels(e, lo, hi)
+    local gmin, gmax = e.min or 0, e.max or 0
+    if gmin <= 0 or gmax <= 0 then return true end
+    return gmin <= hi and gmax >= lo
+end
+
+-- Does a new group earn a pop-up under my settings? In "dungeons" mode a group for any of
+-- my dungeons does; one listed for no dungeon in particular does if it takes my level.
+function L.ToastWants(e)
+    if L.db.toastMode == "dungeons" then
+        if next(e.dungeons or {}) then return D.Overlaps(L.db.toastDungeons, e.dungeons) end
+        local l = MyLevel()
+        return TakesLevels(e, l, l)
+    end
+    return TakesLevels(e, L.ToastRange())
+end
+
+local function NeedsText(e)
+    local needs, open = L.Needs(e.role, e.members)
+    local parts = {}
+    for _, r in ipairs(T.ROLES) do
+        if needs[r] > 0 then parts[#parts + 1] = (needs[r] > 1 and (needs[r] .. " ") or "") .. T.ROLE_NAME[r]:lower() end
+    end
+    if #parts == 0 then return open > 0 and "Needs anyone" or "Full" end
+    return "Needs " .. table.concat(parts, ", ")
+end
+
+-- The pop-up for a group: click it to see the group, or ask to join right there.
+function L.GroupToast(e)
+    NL.Toast.Show({
+        key = "group:" .. e.name,
+        title = "New group  " .. T.Color("Lvl " .. (e.min or 0) .. "-" .. (e.max or 0), C.cream),
+        classFile = e.classFile,
+        text = NL.ClassName(e.name, e.classFile) .. ":  " .. D.Summary(e.dungeons, 3),
+        sub = NeedsText(e) .. ((e.comment and e.comment ~= "") and ("  ·  \"" .. e.comment .. "\"") or ""),
+        duration = 15,
+        onClick = function() ns.Win.ShowGroup(e.name) end,
+        buttons = { { "Ask to join", function() if not e.demo then L.Apply(e.name) end end, "primary" } },
+    })
+end
+
+-- A new group was listed: pop up if it's in my range and I could join it.
+local function MaybeToastGroup(e)
+    if not L.db.toastGroups or e.demo or L.toasted[e.name] then return false end
+    if GetTime() < L.quietUntil then return false end
+    if L.char.group.listed or IsInGroup() then return false end
+    local _, open = L.Needs(e.role, e.members)
+    if open <= 0 or not L.ToastWants(e) then return false end
+    L.toasted[e.name] = true
+    L.GroupToast(e)
+    L.Sound()
+    return true
+end
+
+function L.ApplicantToast(a)
+    local who = NL.ClassName(a.name, a.classFile) .. T.Color("  " .. (a.level or "?"), C.dim)
+    NL.Toast.Show({
+        key = "app:" .. a.name,
+        title = "Wants to join your group",
+        classFile = a.classFile,
+        text = who .. "  ·  " .. L.RoleNames(a.roles),
+        sub = (a.comment and a.comment ~= "") and ("\"" .. a.comment .. "\"") or "Click to see your group",
+        duration = 40,
+        onClick = function() ns.Win.Open(3) end,
+        buttons = {
+            { "Invite", function() if not a.demo then L.InviteApplicant(a.name) end end, "primary" },
+            { "Whisper", function() if not a.demo then NL.Whisper(a.name) end end },
+        },
+    })
+end
+
+-- /nl lfg test, and the options' test button
+function L.TestToasts()
+    local lvl = MyLevel()
+    local dungeons, n = {}, 0
+    for _, d in ipairs(D.list) do
+        if n < 2 and D.Suits(d, lvl) then dungeons[d.id] = true n = n + 1 end
+    end
+    L.GroupToast({
+        demo = true, name = "Testy-" .. (GetNormalizedRealmName() or ""), classFile = "WARRIOR",
+        min = math.max(1, lvl - 2), max = math.min(D.MAX_LEVEL, lvl + 4), role = "T",
+        members = {}, dungeons = dungeons, comment = "a test pop-up",
+    })
+    L.Sound()
 end
 
 function L.InGroupNotLeader()
@@ -418,7 +528,10 @@ function L.DelistGroup(quiet, reason)
     if not g.listed then return end
     g.listed = false
     Send("X;G", "group")
-    for name in pairs(L.applicants) do Comm.Whisper(PREFIX, "N;" .. (reason or "closed"), name) end
+    for name in pairs(L.applicants) do
+        Comm.Whisper(PREFIX, "N;" .. (reason or "closed"), name)
+        NL.Toast.Hide("app:" .. name)
+    end
     wipe(L.applicants)
     NL.MapButton.Attention(false)
     if not quiet then NL.Print("Your group is no longer listed.") end
@@ -443,6 +556,7 @@ end
 function L.Decline(name, reason)
     if not L.applicants[name] then return end
     L.applicants[name] = nil
+    NL.Toast.Hide("app:" .. name)
     Comm.Whisper(PREFIX, "N;" .. (reason or "declined"), name)
     if not next(L.applicants) then NL.MapButton.Attention(false) end
     L.Changed()
@@ -550,17 +664,24 @@ handlers.G = function(f, from)
     e.comment = f[11] or ""
     e.seen = GetTime()
     L.groups[from] = e
+    local toasted = not old and MaybeToastGroup(e)
     if L.char.listed and L.db.notifyGroups and not L.notified[from] and L.GroupFitsMe(e) then
         L.notified[from] = true
+        if toasted then NL.Print("New group that fits you: " .. NL.ClassName(from, classFile) .. "'s "
+            .. D.Summary(e.dungeons, 3) .. " (" .. e.min .. "-" .. e.max .. ").") else
         L.Notify("New group that fits you: " .. NL.ClassName(from, classFile) .. "'s "
-            .. D.Summary(e.dungeons, 3) .. " (" .. e.min .. "-" .. e.max .. "). /nl to look.", true)
+            .. D.Summary(e.dungeons, 3) .. " (" .. e.min .. "-" .. e.max .. "). /nl to look.", true) end
     end
     L.Changed()
 end
 
 handlers.X = function(f, from)
     if f[2] == "P" then L.players[from] = nil
-    elseif f[2] == "G" then L.groups[from] = nil end
+    elseif f[2] == "G" then
+        L.groups[from] = nil
+        L.toasted[from] = nil
+        NL.Toast.Hide("group:" .. from)
+    end
     L.Changed()
 end
 
@@ -575,11 +696,17 @@ handlers.A = function(f, from, via)
         name = from, classFile = NL.ClassFile(f[2]), level = Level(f[3]) or 0,
         roles = L.RolesSet(f[4]), comment = f[5] or "", at = GetTime(),
     }
-    if isNew and L.db.notifyApplicants then
+    if isNew then
         local a = L.applicants[from]
-        L.Notify(NL.ClassName(from, a.classFile) .. " (" .. a.level .. ", " .. L.RolesString(a.roles)
-            .. ") wants to join your group. /nl to answer.", true)
-        NL.MapButton.Attention(true)
+        if L.db.notifyApplicants then
+            NL.Print(NL.ClassName(from, a.classFile) .. " (" .. a.level .. ", " .. L.RolesString(a.roles)
+                .. ") wants to join your group. /nl to answer.")
+        end
+        if L.db.toastApplicants then L.ApplicantToast(a) end
+        if L.db.notifyApplicants or L.db.toastApplicants then
+            L.Sound()
+            NL.MapButton.Attention(true)
+        end
     end
     L.Changed()
 end
@@ -624,7 +751,11 @@ local function Expire()
         end
     end
     for name, a in pairs(L.applicants) do
-        if now - a.at > APPLY_EXPIRE then L.applicants[name] = nil changed = true end
+        if now - a.at > APPLY_EXPIRE then
+            L.applicants[name] = nil
+            NL.Toast.Hide("app:" .. name)
+            changed = true
+        end
     end
     for name, a in pairs(L.applied) do
         if now - a.at > APPLY_EXPIRE then L.applied[name] = nil changed = true end
@@ -645,6 +776,7 @@ local function OnRoster()
                 NL.Print("You're in a group now, so you're no longer listed.")
             end
             wipe(L.applied)
+            for leader in pairs(L.groups) do NL.Toast.Hide("group:" .. leader) end
             -- tell the leader what I can play
             local roles = c.group.listed and { [c.group.role] = true } or c.roles
             Comm.Party(PREFIX, "R;" .. L.RolesString(roles), "roles")
@@ -656,7 +788,10 @@ local function OnRoster()
             else
                 local members = L.Members()
                 for _, m in ipairs(members) do
-                    if m.name and L.applicants[m.name] then L.applicants[m.name] = nil end
+                    if m.name and L.applicants[m.name] then
+                        L.applicants[m.name] = nil
+                        NL.Toast.Hide("app:" .. m.name)
+                    end
                 end
                 local _, open = L.Needs(c.group.role, members)
                 if open <= 0 and L.db.autoDelistWhenFull then
@@ -719,6 +854,8 @@ table.insert(NL.startup, function()
             L.Log("not in a Nerdelandslaget guild:", NL.MyGuildName())
             return
         end
+        -- everything heard in answer to the login query is old news, not a new group
+        L.quietUntil = GetTime() + 15
         L.Query(true)
         if L.char.listed and IsInGroup() then L.char.listed = false end
         if L.char.group.listed and L.InGroupNotLeader() then L.char.group.listed = false end

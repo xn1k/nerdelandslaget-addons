@@ -43,7 +43,7 @@ function ns.BuildSignUp(parent)
     h2:SetText("Comment")
     local comment = UI.Input(left, 292, 26, {
         max = L.COMMENT_MAX,
-        placeholder = "Optional: \"need the Hurley quest\", \"evenings only\"",
+        placeholder = "Optional, e.g. \"evenings only\"",
         onCommit = function(self)
             local text = NL.Comm.Clean(self:GetText(), L.COMMENT_MAX)
             if text ~= L.char.comment then

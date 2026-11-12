@@ -2,7 +2,7 @@
 ## Title: Nerdelandslaget
 ## Notes: Addons for the Nerdelandslaget podcast community and the guilds <Nerdelandslaget> and <Nerdelandslaget II>.
 ## Author: Hans
-## Version: 0.1.1
+## Version: 0.1.2
 ## SavedVariables: NerdelandslagetDB
 ## IconTexture: Interface\AddOns\Nerdelandslaget\Media\emblem.png
 ## AddonCompartmentFunc: Nerdelandslaget_OnAddonCompartmentClick
@@ -10,6 +10,7 @@
 Core.lua
 Theme.lua
 Widgets.lua
+Toast.lua
 Comm.lua
 MapButton.lua
 Options.lua

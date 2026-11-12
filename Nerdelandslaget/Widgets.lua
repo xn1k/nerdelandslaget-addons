@@ -116,15 +116,17 @@ function UI.Button(parent, label, w, h, kind)
         else
             top, bottom = { 0.10, 0.30, 0.35 }, { 0.06, 0.19, 0.23 }
         end
-        local a = on and 1 or 0.35
+        -- a disabled button of any kind goes flat and grey-teal instead of a muddy faded colour
+        if not on then top, bottom = { 0.09, 0.20, 0.23 }, { 0.06, 0.15, 0.18 } end
+        local a = 1
         if self.grad.SetGradient and CreateColor then
             self.grad:SetGradient("VERTICAL", CreateColor(bottom[1], bottom[2], bottom[3], a),
                 CreateColor(top[1], top[2], top[3], a))
         else
             self.grad:SetVertexColor(bottom[1], bottom[2], bottom[3], a)
         end
-        local tc = (self.kind == "primary") and { 0.06, 0.12, 0.14 } or C.cream
-        self.label:SetTextColor(tc[1], tc[2], tc[3], on and 1 or 0.5)
+        local tc = (on and self.kind == "primary") and { 0.06, 0.12, 0.14 } or (on and C.cream or C.dim)
+        self.label:SetTextColor(tc[1], tc[2], tc[3], on and 1 or 0.6)
         self:SetBackdropBorderColor(Unpack(on and C.edge or C.edgeDim))
     end
     function b:SetLabel(text) self.label:SetText(text) end
@@ -211,6 +213,8 @@ function UI.Input(parent, w, h, opts)
     if opts.placeholder then
         local ph = UI.Text(e, 12, C.dim)
         ph:SetPoint("LEFT", 6, 0)
+        ph:SetPoint("RIGHT", -6, 0)          -- clipped to the box (ends in "...") if too long
+        ph:SetWordWrap(false)
         ph:SetText(opts.placeholder)
         local function Update() ph:SetShown(e:GetText() == "" and not e:HasFocus()) end
         e:HookScript("OnTextChanged", Update)
@@ -228,14 +232,17 @@ end
 function UI.RoleToggle(parent, role, size, onClick)
     local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
     size = size or 52
-    b:SetSize(size + 18, size + 26)
+    -- wide enough for "Damage" whatever the icon size
+    b:SetSize(math.max(size + 18, 64), size + 28)
     UI.Backdrop(b, C.bgLight, C.edgeDim)
     b.role = role
     b.icon = b:CreateTexture(nil, "ARTWORK")
     b.icon:SetSize(size, size)
     b.icon:SetPoint("TOP", 0, -6)
     b.label = UI.Text(b, 11, C.text, "CENTER")
-    b.label:SetPoint("BOTTOM", 0, 6)
+    b.label:SetPoint("BOTTOMLEFT", 3, 6)
+    b.label:SetPoint("BOTTOMRIGHT", -3, 6)
+    b.label:SetWordWrap(false)
     b.label:SetText(T.ROLE_NAME[role])
     local hl = b:CreateTexture(nil, "HIGHLIGHT")
     hl:SetPoint("TOPLEFT", 1, -1)
@@ -272,8 +279,23 @@ function UI.Tabs(parent, labels, onSelect)
         b.line:SetPoint("BOTTOMRIGHT", -6, 0)
         b.line:SetHeight(2)
         b.line:SetColorTexture(Unpack(C.gold))
-        b.badge = UI.Text(b, 10, C.orange, "LEFT")
-        b.badge:SetPoint("LEFT", b.text, "RIGHT", 3, 4)
+        -- a count in an orange pill that pulses while it's showing (new applicants, say)
+        b.badge = CreateFrame("Frame", nil, b)
+        b.badge:SetSize(16, 14)
+        b.badge:SetPoint("LEFT", b.text, "RIGHT", 4, 5)
+        local pill = b.badge:CreateTexture(nil, "BACKGROUND")
+        pill:SetAllPoints()
+        pill:SetColorTexture(Unpack(C.orange))
+        b.badge.text = UI.Text(b.badge, 10, { 0.06, 0.12, 0.14 }, "CENTER")
+        b.badge.text:SetPoint("CENTER", 0, 0)
+        local ag = b.badge:CreateAnimationGroup()
+        ag:SetLooping("BOUNCE")
+        local fade = ag:CreateAnimation("Alpha")
+        fade:SetFromAlpha(1)
+        fade:SetToAlpha(0.45)
+        fade:SetDuration(0.7)
+        b.badge.pulse = ag
+        b.badge:Hide()
         local hl = b:CreateTexture(nil, "HIGHLIGHT")
         hl:SetAllPoints()
         hl:SetColorTexture(1, 0.9, 0.6, 0.06)
@@ -291,7 +313,21 @@ function UI.Tabs(parent, labels, onSelect)
         end
         if onSelect then onSelect(i) end
     end
-    function tabs:SetBadge(i, text) self.buttons[i].badge:SetText(text or "") end
+    function tabs:SetBadge(i, text)
+        local badge = self.buttons[i].badge
+        text = text and tostring(text) or ""
+        if text == "" then
+            badge.pulse:Stop()
+            badge:Hide()
+            return
+        end
+        badge.text:SetText(text)
+        badge:SetWidth(math.max(16, badge.text:GetStringWidth() + 8))
+        if not badge:IsShown() then
+            badge:Show()
+            badge.pulse:Play()
+        end
+    end
     return tabs
 end
 

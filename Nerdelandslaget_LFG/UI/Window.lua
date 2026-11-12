@@ -111,6 +111,24 @@ end
 
 function W.Select(tab) W.Open(tab) end
 
+-- From a pop-up: Browse, groups, with this group at the top and glowing for a while (shown
+-- even if the dungeon filter or "only what fits me" would hide it).
+W.HIGHLIGHT_TIME = 12
+function W.ShowGroup(name)
+    L.db.browseKind = "groups"
+    W.highlight, W.highlightUntil, W.scrollTop = name, GetTime() + W.HIGHLIGHT_TIME, true
+    W.Open(1)
+    if not L.groups[name] then
+        NL.Print(NL.Short(name) .. "'s group isn't listed any more.")
+    end
+    C_Timer.After(W.HIGHLIGHT_TIME + 0.1, W.Refresh)
+end
+
+function W.Highlighted()
+    if W.highlight and GetTime() < (W.highlightUntil or 0) then return W.highlight end
+    W.highlight = nil
+end
+
 L.OnChange(W.Refresh)
 
 -- "12m", "2h"
@@ -174,10 +192,12 @@ NL.RegisterModule({
             L.DelistGroup()
         elseif cmd == "options" then
             NL.OpenOptions(ns.optionsCategory)
+        elseif cmd == "test" then
+            L.TestToasts()
         elseif cmd == "" then
             W.Toggle()
         else
-            NL.Print("/nl lfg [demo|delist|options]")
+            NL.Print("/nl lfg [demo|delist|test|options]")
         end
     end,
     options = function() if ns.BuildOptions then ns.BuildOptions() end end,

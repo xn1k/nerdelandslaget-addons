@@ -29,9 +29,19 @@ function ns.BuildOptions()
         y = y - 26
     end
 
-    Section("Notifications")
+    Section("Pop-ups")
+    local alerts = ns.BuildAlerts(page, function()
+        -- the dungeon list lives in the Dungeon Finder's Pop-ups panel
+        if SettingsPanel and SettingsPanel.Close then pcall(SettingsPanel.Close, SettingsPanel) end
+        ns.Win.Open(1)
+        if ns.Win.ShowAlerts then ns.Win.ShowAlerts() end
+    end)
+    alerts:SetPoint("TOPLEFT", 22, y)
+    y = y - 222
+
+    Section("Chat")
     Check("notifyGroups", "Tell me about new groups that fit me", "While you're listed: a chat line (and a sound) when a group you fit is listed.")
-    Check("notifyApplicants", "Tell me when someone asks to join my group", "A chat line, a sound, and the minimap button pulses.")
+    Check("notifyApplicants", "Tell me when someone asks to join my group", "A chat line and a sound; the minimap button pulses.")
     Check("notifyPlayers", "Tell me about new players that fit my group", "While your group is listed: a chat line when a player who fits it signs up.")
     Check("sound", "Play a sound with notifications")
     y = y - 8

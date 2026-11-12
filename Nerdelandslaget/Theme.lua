@@ -54,50 +54,29 @@ T.ROLES = { "T", "H", "D" }
 T.ROLE_NAME = { T = "Tank", H = "Healer", D = "Damage" }
 T.ROLE_COLOR = { T = { 0.38, 0.62, 1 }, H = { 0.40, 0.92, 0.45 }, D = { 1, 0.42, 0.32 } }
 
-local ROLE_ATLAS = {
-    T = { "roleicon-tiny-tank", "UI-LFG-RoleIcon-Tank", "groupfinder-icon-role-large-tank" },
-    H = { "roleicon-tiny-healer", "UI-LFG-RoleIcon-Healer", "groupfinder-icon-role-large-heal" },
-    D = { "roleicon-tiny-dps", "UI-LFG-RoleIcon-DPS", "groupfinder-icon-role-large-dps" },
-}
-local ROLE_FILE = {
-    T = "Interface\\Icons\\Ability_Warrior_DefensiveStance",
-    H = "Interface\\Icons\\Spell_Holy_FlashHeal",
-    D = "Interface\\Icons\\Ability_DualWield",
-}
+-- The suite's own role icons (Media/role_*.png, built by tools/build_media.py): 128px for the
+-- big toggles, a pre-shrunk 32px copy for the small icons in rows so they stay crisp.
+local ROLE_FILE = { T = "tank", H = "healer", D = "damage" }
 
 local function AtlasExists(name)
     return C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(name) ~= nil
 end
 
-local roleAtlas = {}
-local function RoleAtlas(role)
-    if roleAtlas[role] == nil then
-        roleAtlas[role] = false
-        for _, a in ipairs(ROLE_ATLAS[role] or {}) do
-            if AtlasExists(a) then roleAtlas[role] = a break end
-        end
-    end
-    return roleAtlas[role]
-end
-
 -- Paints tex as role ("T", "H", "D"); dim = not chosen / not filled; nil role = an empty slot.
 function T.SetRole(tex, role, dim)
-    if not role then
+    if not role or not ROLE_FILE[role] then
         tex:SetTexture(T.media.white)
         tex:SetTexCoord(0, 1, 0, 1)
         tex:SetVertexColor(1, 1, 1, 0.08)
         tex:SetDesaturated(false)
         return
     end
-    local atlas = RoleAtlas(role)
-    if atlas then
-        tex:SetAtlas(atlas)
-    else
-        tex:SetTexture(ROLE_FILE[role])
-        tex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    end
+    local w = tex:GetWidth() or 0
+    local small = w > 0 and w <= 28
+    tex:SetTexture(MEDIA .. "role_" .. ROLE_FILE[role] .. (small and "_32" or "") .. ".png")
+    tex:SetTexCoord(0, 1, 0, 1)
     tex:SetDesaturated(dim and true or false)
-    tex:SetVertexColor(1, 1, 1, dim and 0.35 or 1)
+    tex:SetVertexColor(1, 1, 1, dim and 0.3 or 1)
 end
 
 ---------------------------------------------------------------------------

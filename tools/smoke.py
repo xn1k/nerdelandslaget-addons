@@ -111,6 +111,60 @@ def scenario():
     check(tuple(needs) == (0, 0, 2, 2), f"group needs 2 damage: {needs}")
     run("lfgns.Win.Open(1) lfgns.LFG.db.browseKind = 'groups' lfgns.LFG.db.onlyFits = false lfgns.Win.Refresh()", "browse groups")
 
+    # pop-ups for new groups: not for what the login query brings in, then for my level
+    toast = lua.eval("function(k) return Nerdelandslaget.Toast.Active(k) ~= nil end")
+    check(not toast("group:Lockie-Firemaw"), "no pop-up for groups heard right after login")
+    run("""
+    mock.advance(15)
+    mock.fire('CHAT_MSG_ADDON', 'NLLFG1', 'G;1;11;31;H;30;36;0;13;;new one', 'CHANNEL', 'Druidy')
+    mock.fire('CHAT_MSG_ADDON', 'NLLFG1', 'G;1;8;52;D;50;56;0;;;too high', 'CHANNEL', 'Highy')
+    """, "new groups")
+    check(toast("group:Druidy-Firemaw"), "pop-up for a new group at my level")
+    check(not toast("group:Highy-Firemaw"), "no pop-up for a group out of my level")
+    run("""
+    NerdelandslagetLFGFrame:Hide()
+    lfgns.LFG.db.onlyFits = true
+    lfgns.LFG.db.browseDungeon = 20
+    Nerdelandslaget.Toast.Active('group:Druidy-Firemaw'):Click('LeftButton')
+    """, "click the pop-up")
+    check(G.NerdelandslagetLFGFrame._shown, "pop-up click opens the window")
+    check(lua.eval("lfgns.Win.Highlighted()") == "Druidy-Firemaw", "the group is highlighted")
+    check(not toast("group:Druidy-Firemaw"), "clicked pop-up goes away")
+    run("lfgns.LFG.db.onlyFits = false lfgns.LFG.db.browseDungeon = 0", "filters back")
+    run("""
+    lfgns.LFG.db.toastMode = 'range'
+    lfgns.LFG.db.toastMin, lfgns.LFG.db.toastMax = 50, 55
+    mock.fire('CHAT_MSG_ADDON', 'NLLFG1', 'X;G', 'CHANNEL', 'Highy')
+    mock.fire('CHAT_MSG_ADDON', 'NLLFG1', 'G;1;8;52;D;50;56;0;;;relisted', 'CHANNEL', 'Highy')
+    """, "range pop-up")
+    check(toast("group:Highy-Firemaw"), "pop-up for a group in the chosen range")
+    clear_sent()
+    run("Nerdelandslaget.Toast.Active('group:Highy-Firemaw').buttons[1]:Click() mock.advance(1)", "ask from the pop-up")
+    check(any(t[0].startswith("A;") and t[2] == "Highy" for t in sent()), "Ask to join from the pop-up")
+    run("""
+    lfgns.LFG.db.toastMode = 'level'
+    lfgns.LFG.applied = {}
+    SlashCmdList.NERDELANDSLAGET('lfg test')
+    lfgns.Win.Open(1)
+    """, "test pop-up")
+    check(toast("group:Testy-Firemaw"), "test pop-up")
+
+    # pop-ups for picked dungeons: a group for dungeon 16 yes, for 13 no, for "any dungeon" at my level yes
+    run("""
+    local db = lfgns.LFG.db
+    db.toastMode = 'dungeons'
+    db.toastDungeons = { [16] = true }
+    mock.fire('CHAT_MSG_ADDON', 'NLLFG1', 'G;1;1;34;T;33;41;0;16,17;;lib', 'CHANNEL', 'Libby')
+    mock.fire('CHAT_MSG_ADDON', 'NLLFG1', 'G;1;1;30;T;29;38;0;13;;gnomer', 'CHANNEL', 'Gnomy')
+    mock.fire('CHAT_MSG_ADDON', 'NLLFG1', 'G;1;1;31;T;28;36;0;;;anything', 'CHANNEL', 'Anyone')
+    lfgns.Win.Open(1) lfgns.Win.ShowAlerts()
+    """, "dungeon pop-ups")
+    check(toast("group:Libby-Firemaw"), "pop-up for a picked dungeon")
+    check(not toast("group:Gnomy-Firemaw"), "no pop-up for a dungeon not picked")
+    check(toast("group:Anyone-Firemaw"), "pop-up for an any-dungeon group at my level")
+    run("lfgns.LFG.db.toastMode = 'level' NL = Nerdelandslaget", "mode back")
+    run("Nerdelandslaget.Toast.Hide('group:Testy-Firemaw') Nerdelandslaget.Toast.ResetPosition()", "hide test")
+
     # list myself
     clear_sent()
     run("""
@@ -159,12 +213,14 @@ def scenario():
 
     run("mock.fire('CHAT_MSG_ADDON', 'NLLFG1', 'A;1;38;T;can tank', 'WHISPER', 'Shieldy')", "applicant")
     check(L.applicants["Shieldy-Firemaw"] is not None, "applicant listed")
+    check(lua.eval("Nerdelandslaget.Toast.Active('app:Shieldy-Firemaw') ~= nil"), "applicant pop-up")
     run("lfgns.Win.Open(3)", "group tab with applicant")
     clear_sent()
     run("lfgns.LFG.Decline('Shieldy-Firemaw') mock.advance(1)", "decline")
     check(any(t[0] == "N;declined" and t[2] == "Shieldy" for t in sent()), "decline whisper")
+    check(lua.eval("Nerdelandslaget.Toast.Active('app:Shieldy-Firemaw') == nil"), "declining hides the pop-up")
     run("mock.fire('CHAT_MSG_ADDON', 'NLLFG1', 'A;1;38;T;again', 'WHISPER', 'Shieldy')", "applicant again")
-    run("lfgns.LFG.InviteApplicant('Shieldy-Firemaw')", "invite")
+    run("Nerdelandslaget.Toast.Active('app:Shieldy-Firemaw').buttons[1]:Click()", "invite from the pop-up")
     invites = [dict(G.mock.sent[i].items()) for i in range(1, len(G.mock.sent) + 1)]
     check(any(m.get("kind") == "INVITE" and m.get("target") == "Shieldy" for m in invites), f"invite by short name: {invites}")
     # a name with a space, like Forever allows, and the window's close button

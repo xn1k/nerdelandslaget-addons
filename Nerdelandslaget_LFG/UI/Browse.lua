@@ -104,6 +104,20 @@ function ns.BuildBrowse(parent)
 
     local refresh = UI.Button(page, "Refresh", 80, 24)
     refresh:SetPoint("TOPRIGHT", 0, 0)
+
+    -- pop-up settings, in a small panel under their button
+    local alertsBtn = UI.Button(page, "Pop-ups", 80, 24)
+    alertsBtn:SetPoint("RIGHT", refresh, "LEFT", -6, 0)
+    local pop = ns.BuildAlertsPanel(page)
+    pop:SetPoint("TOPRIGHT", refresh, "BOTTOMRIGHT", 0, -4)
+    pop:SetFrameLevel(page:GetFrameLevel() + 30)
+    pop:Hide()
+    alertsBtn:SetScript("OnClick", function() pop:SetShown(not pop:IsShown()) end)
+    alertsBtn:SetScript("OnEnter", function(self)
+        UI.Tip(self, "Pop-ups", { "A small pop-up when a group is listed for your level or your dungeons, and when someone asks to join yours." })
+    end)
+    function ns.Win.ShowAlerts() pop:Show() end
+    page:HookScript("OnHide", function() pop:Hide() end)
     refresh:SetScript("OnClick", function()
         L.Query(true)
         refresh:Disable()
@@ -121,6 +135,20 @@ function ns.BuildBrowse(parent)
         row.fit:SetPoint("BOTTOMLEFT", 0, 1)
         row.fit:SetWidth(3)
         row.fit:SetColorTexture(C.green[1], C.green[2], C.green[3], 1)
+
+        -- the glow on a group you came to from a pop-up
+        row.flash = row:CreateTexture(nil, "BACKGROUND", nil, 2)
+        row.flash:SetPoint("TOPLEFT", 0, -1)
+        row.flash:SetPoint("BOTTOMRIGHT", 0, 1)
+        row.flash:SetColorTexture(C.gold[1], C.gold[2], C.gold[3], 0.22)
+        local ag = row.flash:CreateAnimationGroup()
+        ag:SetLooping("BOUNCE")
+        local a = ag:CreateAnimation("Alpha")
+        a:SetFromAlpha(1)
+        a:SetToAlpha(0.25)
+        a:SetDuration(0.6)
+        row.flash.pulse = ag
+        row.flash:Hide()
 
         row.class = row:CreateTexture(nil, "ARTWORK")
         row.class:SetSize(30, 30)
@@ -187,6 +215,11 @@ function ns.BuildBrowse(parent)
         row.dungeons:SetText(summary)
         row.comment:SetText((e.comment and e.comment ~= "") and ("\"" .. e.comment .. "\"") or "")
         row.age:SetText(W.Age(e.since))
+        local glow = kind == "group" and e.name == W.Highlighted()
+        if glow ~= row.flash:IsShown() then
+            row.flash:SetShown(glow)
+            if glow then row.flash.pulse:Play() else row.flash.pulse:Stop() end
+        end
         local fits = e.fitsShown
         row.fit:SetShown(fits and not e.self and true or false)
         row.bg:SetAlpha((fits ~= false or e.self) and 1 or 0.45)
@@ -271,10 +304,14 @@ function ns.BuildBrowse(parent)
 
         local items = {}
         local src = players and L.players or L.groups
+        local hl = not players and W.Highlighted()
         local mine = players and L.MyPlayerEntry() or L.MyGroupEntry()
         if mine then items[#items + 1] = mine end
         for _, e in pairs(src) do
-            if Matches(e) then
+            if e.name == hl then
+                e._fits = L.GroupFitsMe(e)
+                items[#items + 1] = e
+            elseif Matches(e) then
                 local ok
                 if players then
                     if L.Leading() then ok = L.PlayerFitsMyGroup(e) end
@@ -287,6 +324,7 @@ function ns.BuildBrowse(parent)
         end
         table.sort(items, function(a, b)
             if a.self ~= b.self then return a.self and true or false end
+            if hl and (a.name == hl) ~= (b.name == hl) then return a.name == hl end
             local fa, fb = a._fits and 1 or 0, b._fits and 1 or 0
             if fa ~= fb then return fa > fb end
             return (a.since or 0) > (b.since or 0)
@@ -295,6 +333,10 @@ function ns.BuildBrowse(parent)
         list:SetEmptyText(players
             and "Nobody is looking for a group right now.\n\nSign up yourself, or start a group under My group."
             or "No groups are listed right now.\n\nStart one under My group, or sign up and get a ping when one appears.")
+        if W.scrollTop then
+            W.scrollTop = nil
+            list.offset = 0
+        end
         list:SetItems(items)
     end
 

@@ -2,7 +2,7 @@
 ## Title: Nerdelandslaget: Dungeon Finder
 ## Notes: A dungeon finder for <Nerdelandslaget> and <Nerdelandslaget II>. Sign up for several dungeons at once, start groups with a level range, and invite or whisper with one click.
 ## Author: Hans
-## Version: 0.1.1
+## Version: 0.1.2
 ## Group: Nerdelandslaget
 ## Dependencies: Nerdelandslaget
 ## SavedVariables: NerdelandslagetLFGDB
@@ -14,6 +14,7 @@ Core.lua
 Demo.lua
 UI\Picker.lua
 UI\Window.lua
+UI\Alerts.lua
 UI\Browse.lua
 UI\SignUp.lua
 UI\Group.lua

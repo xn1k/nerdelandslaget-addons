@@ -44,7 +44,7 @@ function ns.BuildGroup(parent)
     h1:SetText("Your role")
     local roles = {}
     for i, r in ipairs(T.ROLES) do
-        local b = UI.RoleToggle(left, r, 26, function()
+        local b = UI.RoleToggle(left, r, 30, function()
             L.char.group.role = r
             Changed()
         end)
@@ -54,7 +54,7 @@ function ns.BuildGroup(parent)
 
     -- levels
     local h2 = UI.Title(left, 14)
-    h2:SetPoint("TOPLEFT", 160, -4)
+    h2:SetPoint("TOPLEFT", 218, -4)
     h2:SetText("Levels")
     local function CommitLevels()
         local g = L.char.group
@@ -68,7 +68,7 @@ function ns.BuildGroup(parent)
         end
     end
     page.minBox = UI.Input(left, 44, 24, { numeric = true, max = 2, justify = "CENTER", onCommit = CommitLevels })
-    page.minBox:SetPoint("TOPLEFT", 160, -28)
+    page.minBox:SetPoint("TOPLEFT", 218, -26)
     local to = UI.Text(left, 12, C.dim)
     to:SetPoint("LEFT", page.minBox, "RIGHT", 6, 0)
     to:SetText("to")
@@ -76,8 +76,8 @@ function ns.BuildGroup(parent)
     page.maxBox:SetPoint("LEFT", to, "RIGHT", 6, 0)
     page.minBox:SetScript("OnTabPressed", function() page.maxBox:SetFocus() end)
     page.maxBox:SetScript("OnTabPressed", function() page.minBox:SetFocus() end)
-    local match = UI.Button(left, "From dungeons", 118, 20)
-    match:SetPoint("TOPLEFT", 160, -58)
+    local match = UI.Button(left, "From dungeons", 112, 22)
+    match:SetPoint("TOPLEFT", 218, -58)
     match:SetScript("OnClick", function()
         L.char.group.manualLevels = false
         AutoLevels()
@@ -90,7 +90,7 @@ function ns.BuildGroup(parent)
     -- comment + list button
     local comment = UI.Input(left, LEFT_W - 8, 26, {
         max = L.COMMENT_MAX,
-        placeholder = "Comment: \"SM GY then Lib\", \"need a healer\"",
+        placeholder = "Comment, e.g. \"SM GY then Lib\"",
         onCommit = function(self)
             local text = NL.Comm.Clean(self:GetText(), L.COMMENT_MAX)
             if text ~= L.char.group.comment then
